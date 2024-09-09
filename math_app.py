@@ -5,24 +5,28 @@ import matplotlib.pyplot as plt
 
 app_ui = ui.page_sidebar(
     ui.sidebar(
-    ui.input_file("file1", "Choose CSV File", accept=[".csv"]),
+        ui.input_file("file1", "Choose CSV File", accept=[".csv"]),
+        ui.input_action_button("upload_button", "Upload File")
     ),
-    ui.output_plot("bar_plot")
+    ui.panel_conditional(
+        "input.upload_button > 0",
+        ui.card(
+            ui.output_plot("bar_plot")
+        )
+    )
 )
 
 def server(input, output, session):
+    @output
     @render.plot
+    @reactive.event(input.upload_button)
     def bar_plot():
-
         file_dict = input.file1()
         if isinstance(file_dict, list):
             file_dict = file_dict[0]
 
         df = pd.read_csv(file_dict['datapath'])
 
-        if 'Topic' not in df.columns or 'Rating' not in df.columns:
-            return "The CSV file must contain 'Topic' and 'Rating' columns."
-        
         negative_ratings = df[df['Rating'] == '-']
         topic_counts = negative_ratings['Topic'].value_counts().sort_values()
 
@@ -36,8 +40,6 @@ def server(input, output, session):
         
         # Return the plot
         return plt.gcf()
-
-
 
 if __name__ == "__main__":
     app = App(app_ui, server)
